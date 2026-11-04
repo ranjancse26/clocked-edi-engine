@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clocked EDI Engine | X12 Transaction Processing</title>
+  <meta name="description" content="Modern X12 EDI processing engine with Clocked PII Protection, Injection Guard, Extract + Decide">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-container">
+      <div class="nav-brand">
+        <div class="nav-logo">⚡</div>
+        <div class="nav-text">
+          <div class="nav-title">Clocked EDI Engine</div>
+          <div class="nav-subtitle">X12 Transaction Processing</div>
+        </div>
+      </div>
+      <div class="nav-status" id="navStatus">
+        <div class="status-indicator status-disconnected">
+          <span class="status-dot"></span>
+          <span class="status-text">Connecting...</span>
+        </div>
+      </div>
+      <div class="nav-mode">
+        <span class="mode-badge" id="modeBadge">mock mode</span>
+      </div>
+      <div class="nav-actions">
+        <button class="nav-link" id="aboutBtn" aria-label="About Clocked EDI Engine">About</button>
+        <button class="nav-link" id="apiDocsBtn" aria-label="Clocked API References">API References</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-container">
+    <section class="input-panel">
+      <div class="panel-header">
+        <h2>EDI Input</h2>
+        <p>Paste X12 EDI text or upload a transaction file</p>
+      </div>
+
+      <div class="input-tabs">
+        <button class="input-tab active" data-tab="paste">Paste EDI</button>
+        <button class="input-tab" data-tab="upload">Upload File</button>
+      </div>
+
+      <div class="tab-content active" id="tab-paste">
+        <textarea id="ediInput" placeholder="ISA*00*          *00*            *ZZ*SENDER         *ZZ*RECEIVER     *...~"></textarea>
+        <div class="input-footer">
+          <span id="charCount">0 characters</span>
+          <div class="transaction-selector">
+            <label>Transaction Type</label>
+            <select id="transactionType">
+              <option value="">Auto-detect</option>
+              <option value="850">850 - Purchase Order</option>
+              <option value="810">810 - Invoice</option>
+              <option value="856">856 - Advance Ship Notice</option>
+              <option value="820">820 - Payment Order</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-upload">
+        <div class="upload-zone" id="uploadZone">
+          <div class="upload-icon">📁</div>
+          <div class="upload-text">
+            <strong>Click to browse or drag and drop</strong>
+            <p>.edi, .txt, .x12 files (max 15 MB)</p>
+          </div>
+          <input type="file" id="fileInput" accept=".edi,.txt,.x12,.*" hidden>
+        </div>
+      </div>
+
+      <div class="samples-section">
+        <h3>Sample Transactions</h3>
+        <div class="sample-grid">
+          <button class="sample-card" data-sample="810">
+            <div class="sample-header">
+              <span class="sample-code">810</span>
+              <span class="sample-type">Invoice</span>
+            </div>
+            <div class="sample-desc">Vendor invoice with line items and totals</div>
+          </button>
+          <button class="sample-card" data-sample="850">
+            <div class="sample-header">
+              <span class="sample-code">850</span>
+              <span class="sample-type">Purchase Order</span>
+            </div>
+            <div class="sample-desc">Purchase order with buyer/vendor/supplier</div>
+          </button>
+          <button class="sample-card" data-sample="856">
+            <div class="sample-header">
+              <span class="sample-code">856</span>
+              <span class="sample-type">ASN</span>
+            </div>
+            <div class="sample-desc">Advance ship notice with HL hierarchy</div>
+          </button>
+          <button class="sample-card" data-sample="820">
+            <div class="sample-header">
+              <span class="sample-code">820</span>
+              <span class="sample-type">Payment</span>
+            </div>
+            <div class="sample-desc">Payment order/remittance advice</div>
+          </button>
+        </div>
+      </div>
+
+      <button class="process-btn" id="processBtn" disabled>
+        <span class="btn-icon">▶</span>
+        <span class="btn-text">Process Transaction</span>
+      </button>
+    </section>
+
+    <section class="results-panel">
+      <div class="pipeline-section">
+        <div class="pipeline-header">
+          <h2>Processing Pipeline</h2>
+          <p>Real-time EDI processing stages</p>
+        </div>
+        <div class="pipeline-track">
+          <div class="pipeline-step" id="step-parse">
+            <div class="step-marker">1</div>
+            <div class="step-label">Parse</div>
+            <div class="step-detail">X12 delimiter detection &amp; segmentation</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-step" id="step-validate">
+            <div class="step-marker">2</div>
+            <div class="step-label">Validate</div>
+            <div class="step-detail">Envelope &amp; control number checks</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-step" id="step-secure">
+            <div class="step-marker">3</div>
+            <div class="step-label">Secure</div>
+            <div class="step-detail">PII Protection + Injection Guard</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-step" id="step-extract">
+            <div class="step-marker">4</div>
+            <div class="step-label">Extract</div>
+            <div class="step-detail">Clocked structured field extraction</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-step" id="step-decide">
+            <div class="step-marker">5</div>
+            <div class="step-label">Decide</div>
+            <div class="step-detail">Processing readiness assessment</div>
+          </div>
+          <div class="pipeline-connector"></div>
+          <div class="pipeline-step" id="step-serve">
+            <div class="step-marker">6</div>
+            <div class="step-label">Serve</div>
+            <div class="step-detail">Normalized JSON response</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="results-tabs">
+        <button class="result-tab active" data-result="summary">Summary</button>
+        <button class="result-tab" data-result="structural">Structural</button>
+        <button class="result-tab" data-result="normalized">Normalized</button>
+        <button class="result-tab" data-result="security">Security</button>
+        <button class="result-tab" data-result="clocked">Clocked</button>
+        <button class="result-tab" data-result="raw">Raw JSON</button>
+      </div>
+
+      <div class="results-content" id="resultsContent">
+        <div class="empty-state">
+          <div class="empty-icon">📊</div>
+          <h3>No results yet</h3>
+          <p>Process an EDI transaction to see results here</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- About Modal -->
+  <div class="modal-overlay" id="aboutModal" role="dialog" aria-modal="true" aria-labelledby="aboutModalTitle" aria-hidden="true">
+    <div class="modal-backdrop" id="aboutBackdrop"></div>
+    <div class="modal-container">
+      <button class="modal-close" id="aboutClose" aria-label="Close About dialog">×</button>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-icon">ℹ️</div>
+          <h2 id="aboutModalTitle">About Clocked EDI Engine</h2>
+        </div>
+        <div class="modal-body">
+          <p class="lead">Clocked EDI Engine is a modern, secure X12 EDI transaction processing engine built for enterprise-grade electronic data interchange.</p>
+
+          <div class="about-grid">
+            <div class="about-card">
+              <div class="about-icon">🔒</div>
+              <h3>PII Protection</h3>
+              <p>Automatic detection and redaction of personally identifiable information before processing.</p>
+            </div>
+            <div class="about-card">
+              <div class="about-icon">🛡️</div>
+              <h3>Injection Guard</h3>
+              <p>Real-time prompt injection detection to block malicious payloads and injection attacks.</p>
+            </div>
+            <div class="about-card">
+              <div class="about-icon">⚡</div>
+              <h3>Clocked Extract + Decide</h3>
+              <p>AI-powered structured field extraction and processing readiness assessment.</p>
+            </div>
+            <div class="about-card">
+              <div class="about-icon">📋</div>
+              <h3>X12 Support</h3>
+              <p>Support for 810 (Invoice), 850 (Purchase Order), 856 (Advance Ship Notice), and 820 (Payment Order) transaction sets.</p>
+            </div>
+          </div>
+
+          <div class="about-divider"></div>
+
+          <div class="about-meta">
+            <div class="meta-item"><span class="meta-label">Engine</span><span class="meta-value">Clocked EDI Engine v1.0.0</span></div>
+            <div class="meta-item"><span class="meta-label">Protocol</span><span class="meta-value">ANSI X12 EDI</span></div>
+            <div class="meta-item"><span class="meta-label">Theme</span><span class="meta-value">Dark / Light</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- API References Modal -->
+  <div class="modal-overlay" id="apiModal" role="dialog" aria-modal="true" aria-labelledby="apiModalTitle" aria-hidden="true">
+    <div class="modal-backdrop" id="apiBackdrop"></div>
+    <div class="modal-container modal-container--wide">
+      <button class="modal-close" id="apiClose" aria-label="Close API References dialog">×</button>
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-icon">📚</div>
+          <h2 id="apiModalTitle">Clocked API References</h2>
+        </div>
+        <div class="modal-body">
+          <div class="api-section">
+            <h3>Base URL</h3>
+            <div class="code-block inline">https://your-domain.com</div>
+          </div>
+
+          <div class="api-section">
+            <h3>Endpoints</h3>
+
+            <div class="endpoint-card">
+              <div class="endpoint-method method-get">GET</div>
+              <div class="endpoint-path">/health</div>
+              <div class="endpoint-desc">Check the health and operating mode of the EDI engine backend.</div>
+              <div class="endpoint-meta">
+                <span class="meta-tag">Response: 200</span>
+                <span class="meta-tag">application/json</span>
+              </div>
+              <pre class="code-block"><code>{ "mode": "mock | live", "status": "ok" }</code></pre>
+            </div>
+
+            <div class="endpoint-card">
+              <div class="endpoint-method method-post">POST</div>
+              <div class="endpoint-path">/api/edi/process</div>
+              <div class="endpoint-desc">Process an X12 EDI transaction through the full pipeline: parse, validate, secure, extract, decide, serve.</div>
+              <div class="endpoint-meta">
+                <span class="meta-tag">Content-Type: multipart/form-data</span>
+                <span class="meta-tag">Response: 200</span>
+              </div>
+              <div class="req-resp">
+                <div class="req-resp-col">
+                  <h4>Request</h4>
+                  <pre class="code-block"><code>FormData:
+  edi: "ISA*00*...*IEA*1*...*~"</code></pre>
+                </div>
+                <div class="req-resp-col">
+                  <h4>Response</h4>
+                  <pre class="code-block"><code>{ "requestId": "...", "transactionType": "810", "status": "processed", "blocked": false, ... }</code></pre>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="api-section">
+            <h3>Response Fields</h3>
+            <table class="api-table">
+              <thead>
+                <tr><th>Field</th><th>Type</th><th>Description</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><code>requestId</code></td><td>string</td><td>Unique transaction identifier</td></tr>
+                <tr><td><code>transactionType</code></td><td>string</td><td>X12 transaction set (e.g., 810, 850)</td></tr>
+                <tr><td><code>status</code></td><td>string</td><td>Processing outcome (processed, blocked_injection, security_check_failed)</td></tr>
+                <tr><td><code>blocked</code></td><td>boolean</td><td>Whether the transaction was blocked</td></tr>
+                <tr><td><code>security</code></td><td>object</td><td>PII Protection and Injection Guard results</td></tr>
+                <tr><td><code>structural</code></td><td>object</td><td>X12 envelope validation results</td></tr>
+                <tr><td><code>normalized</code></td><td>object</td><td>Mapped X12 segments to structured JSON</td></tr>
+                <tr><td><code>clocked</code></td><td>object</td><td>Extract + Decide AI processing results</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="api-section">
+            <h3>Status Codes</h3>
+            <table class="api-table">
+              <thead>
+                <tr><th>Code</th><th>Meaning</th></tr>
+              </thead>
+              <tbody>
+                <tr><td><span class="status-badge valid">200 OK</span></td><td>Request processed successfully</td></tr>
+                <tr><td><span class="status-badge warning">400 Bad Request</span></td><td>Invalid EDI input or missing fields</td></tr>
+                <tr><td><span class="status-badge info">403 Forbidden</span></td><td>Transaction blocked by security policy</td></tr>
+                <tr><td><span class="status-badge danger">500 Internal Error</span></td><td>Server-side processing failure</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
