@@ -75,10 +75,31 @@ export function extractSafeText(result, fallback) {
 }
 
 export function injectionFlagged(result) {
-  const verdict = result?.response?.verdict ?? result?.verdict;
-  if (typeof verdict === 'string' && verdict.length > 0) {
-    // A "benign" verdict means the content not dangerous.
-    return verdict.toLowerCase() !== 'benign';
+  // The pipeline passes the raw Guard response body. Clocked nests the
+  // assessment under `response`, while mocks and some tenants return a flat
+  // shape. Normalize to the assessment object either way.
+  const assessment = result?.response ?? result;
+
+  // Explicit boolean flags (mock responses and tenant-specific shapes).
+  for (const key of ['flagged', 'is_injection', 'injection_detected', 'blocked']) {
+    if (assessment?.[key] === true) return true;
   }
+
+  const verdict = assessment?.verdict;
+  const injectionScore = assessment?.injection;
+  const threshold = assessment?.threshold;
+
+  // Verdict is the primary signal: anything other than "benign" is flagged.
+  // Severity is diagnostic only and must not gate the decision - a non-benign
+  // verdict with severity "none" is still a hit that must be blocked.
+  const normalizedVerdict = typeof verdict === 'string' ? verdict.toLowerCase().trim() : '';
+  if (normalizedVerdict.length > 0 && normalizedVerdict !== 'benign') return true;
+
+  // Score-based defense-in-depth: flag when the injection probability meets
+  // or exceeds the tenant's threshold, independent of the verdict string.
+  if (typeof injectionScore === 'number' && typeof threshold === 'number') {
+    if (injectionScore >= threshold) return true;
+  }
+
   return false;
 }
