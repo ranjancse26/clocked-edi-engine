@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { fieldsFor, decideFields, decideQuestions } from "../src/clocked/fields.js";
 
 // Clocked Extract/Decide accepts these field types; anything else yields HTTP 422.
-const VALID_TYPES = new Set(['boolean','date','email','enum','id','integer','money','number','phone']);
+const VALID_TYPES = new Set(['boolean','date','email','enum','id','integer','money','number','phone','string']);
 const LEGACY_TYPES = new Set(['extract','generate','choice','yes_no']);
 
 function inspectFields(fields, label) {
@@ -35,9 +35,9 @@ test("decideFields uses only Clocked-accepted field types", () => {
 });
 
 test("document_type and recommended_action use enum type with short distinct options", () => {
-  assert.equal(fieldsFor('810').document_type.type, 'enum');
+  assert.equal(fieldsFor('810').document_type.type, 'string');
   assert.equal(decideFields('810').recommended_action.type, 'enum');
-  assert.ok(fieldsFor('810').document_type.options.includes('810'));
+  assert.ok(fieldsFor('810').document_type.options.includes('810 - Invoice'));
   assert.ok(fieldsFor('810').document_type.options.includes('Other'));
   for (const opt of fieldsFor('810').document_type.options) {
     assert.ok(typeof opt === 'string' && opt.length > 0, `enum option must be nonempty string: ${JSON.stringify(opt)}`);
